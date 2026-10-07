@@ -9,6 +9,36 @@ const {
   FST_ERR_ASYNC_CONSTRAINT
 } = require('../lib/errors')
 
+test('Should allow reusing a routerOptions object across instances', async t => {
+  const routerOptions = { maxParamLength: 2048 }
+  const app1 = Fastify({ routerOptions })
+  t.after(() => app1.close())
+  const app2 = Fastify({ routerOptions })
+  t.after(() => app2.close())
+
+  for (const app of [app1, app2]) {
+    app.get('/test/:id', (req, reply) => reply.send('test'))
+
+    const notFound = await app.inject('/not-found')
+    t.assert.strictEqual(notFound.statusCode, 404)
+
+    const badUrl = await app.inject('/test/%world')
+    t.assert.strictEqual(badUrl.statusCode, 400)
+  }
+})
+
+test('Should not mutate user-provided routerOptions object', async t => {
+  const routerOptions = Object.freeze({ maxParamLength: 2048 })
+  const options = { routerOptions }
+  const app = Fastify(options)
+  t.after(() => app.close())
+
+  await app.ready()
+
+  t.assert.strictEqual(options.routerOptions, routerOptions)
+  t.assert.deepStrictEqual(routerOptions, { maxParamLength: 2048 })
+})
+
 test('Should honor ignoreTrailingSlash option', async t => {
   t.plan(4)
   const fastify = Fastify({
