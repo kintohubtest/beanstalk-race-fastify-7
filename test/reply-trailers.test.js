@@ -363,13 +363,39 @@ test('remove all trailers', (t, testDone) => {
   }, (error, res) => {
     t.assert.ifError(error)
     t.assert.strictEqual(res.statusCode, 200)
-    t.assert.ok(!res.headers.trailer)
+    t.assert.strictEqual(res.headers.trailer, undefined)
     t.assert.ok(!res.trailers.etag)
     t.assert.ok(!res.trailers['should-not-call'])
-    t.assert.ok(!res.headers['content-length'])
+    t.assert.strictEqual(res.headers['content-length'], '0')
     testDone()
   })
 })
+
+for (const removeAll of [false, true]) {
+  test(`remove ${removeAll ? 'all' : 'other'} trailers during a trailer callback`, async (t) => {
+    const fastify = Fastify()
+    t.after(() => fastify.close())
+
+    fastify.get('/', function (request, reply) {
+      reply.trailer('ETag', function (reply, payload, done) {
+        reply.removeTrailer('Should-Not-Call')
+        if (removeAll) reply.removeTrailer('ETag')
+        t.assert.strictEqual(reply.hasTrailer('ETag'), !removeAll)
+        t.assert.strictEqual(reply.hasTrailer('Should-Not-Call'), false)
+        done(null, 'custom-etag')
+      })
+      reply.trailer('Should-Not-Call', function () {
+        t.assert.fail('removed trailer should not be called')
+      })
+      reply.send('hello')
+    })
+
+    const res = await fastify.inject('/')
+    t.assert.strictEqual(res.statusCode, 200)
+    t.assert.strictEqual(res.payload, 'hello')
+    t.assert.deepStrictEqual(res.trailers, { etag: 'custom-etag' })
+  })
+}
 
 test('hasTrailer', (t, testDone) => {
   t.plan(10)
