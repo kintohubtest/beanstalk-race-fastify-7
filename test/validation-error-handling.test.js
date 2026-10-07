@@ -19,6 +19,40 @@ function echoBody (req, reply) {
   reply.code(200).send(req.body.name)
 }
 
+for (const asyncHook of [false, true]) {
+  test(`thrown custom validation errors reach the error handler with ${asyncHook ? 'async' : 'sync'} preValidation`, async (t) => {
+    t.plan(6)
+
+    const fastify = Fastify()
+    t.after(() => fastify.close())
+    const validationError = new Error('Custom validation failed')
+
+    fastify.addHook('preValidation', asyncHook
+      ? async () => { await Promise.resolve() }
+      : (request, reply, done) => { done() })
+    fastify.setErrorHandler((error, request, reply) => {
+      t.assert.strictEqual(error, validationError)
+      t.assert.strictEqual(error.statusCode, 400)
+      t.assert.strictEqual(error.code, 'FST_ERR_VALIDATION')
+      t.assert.strictEqual(error.validationContext, 'body')
+      reply.code(error.statusCode).send({ error: error.message })
+    })
+    fastify.post('/', {
+      schema,
+      validatorCompiler: () => () => { throw validationError }
+    }, () => { t.assert.fail('handler should not run') })
+
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/',
+      payload: { name: 'test', work: 'artist' }
+    })
+
+    t.assert.strictEqual(response.statusCode, 400)
+    t.assert.deepStrictEqual(response.json(), { error: validationError.message })
+  })
+}
+
 test('should work with valid payload', async (t) => {
   t.plan(2)
 
