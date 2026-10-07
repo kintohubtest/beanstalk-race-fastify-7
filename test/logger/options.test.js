@@ -1,6 +1,7 @@
 'use strict'
 
 const stream = require('node:stream')
+const { format } = require('node:util')
 
 const t = require('node:test')
 const split = require('split2')
@@ -576,4 +577,55 @@ t.test('logger options', { timeout: 60000 }, async (t) => {
       if (lines.length === 0) break
     }
   })
+})
+
+t.test('invalid route log levels fail during registration', async (t) => {
+  for (const logger of [false, true]) {
+    await t.test(`logger enabled: ${logger}`, (t) => {
+      const fastify = Fastify({ logger })
+      t.after(() => fastify.close())
+
+      for (const logLevel of ['invalid', 'INFO', 42, {}, ['info']]) {
+        t.assert.throws(() => {
+          fastify.get('/invalid', { logLevel }, () => {})
+        }, {
+          name: 'FastifyError',
+          code: 'FST_ERR_ROUTE_LOG_LEVEL_INVALID',
+          message: format("Log level for 'GET:/invalid' route must be a valid logger level. Received: '%s'", logLevel)
+        })
+      }
+    })
+  }
+})
+
+t.test('invalid plugin log levels fail when registering a route', async (t) => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+  fastify.register(async function (instance) {
+    instance.get('/route', () => {})
+  }, { prefix: '/plugin', logLevel: 'invalid' })
+
+  await t.assert.rejects(fastify.ready(), {
+    code: 'FST_ERR_ROUTE_LOG_LEVEL_INVALID',
+    message: "Log level for 'GET:/plugin/route' route must be a valid logger level. Received: 'invalid'"
+  })
+})
+
+t.test('routes support silent and custom logger levels', async (t) => {
+  const fastify = Fastify({
+    logger: { customLevels: { custom: 35 }, stream: new stream.PassThrough() }
+  })
+  t.after(() => fastify.close())
+
+  for (const logLevel of ['silent', 'custom']) {
+    fastify.get(`/${logLevel}`, { logLevel }, async (request) => {
+      return { level: request.log.level }
+    })
+  }
+
+  for (const logLevel of ['silent', 'custom']) {
+    const response = await fastify.inject(`/${logLevel}`)
+    t.assert.strictEqual(response.statusCode, 200)
+    t.assert.deepStrictEqual(response.json(), { level: logLevel })
+  }
 })
