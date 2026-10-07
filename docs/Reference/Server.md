@@ -17,6 +17,7 @@ describes the properties available in that options object.
   - [`forceCloseConnections`](#forcecloseconnections)
   - [`maxRequestsPerSocket`](#maxrequestspersocket)
   - [`requestTimeout`](#requesttimeout)
+  - [`handlerTimeout`](#handlertimeout)
   - [`bodyLimit`](#bodylimit)
   - [`onProtoPoisoning`](#onprotopoisoning)
   - [`onConstructorPoisoning`](#onconstructorpoisoning)
@@ -223,6 +224,21 @@ in front.
 
 > ℹ️ Note:
 >  At the time of writing, only node >= v14.11.0 supports this option
+
+### `handlerTimeout`
+
++ Default: `0` (disabled)
+
+Sets the application request timeout in milliseconds, independently of socket
+and keep-alive timeouts. Routes inherit this value and can override it with a
+positive integer `handlerTimeout` route option. The timeout starts before
+`onRequest` and ends when the response finishes or `reply.hijack()` is called.
+
+On timeout, Fastify sends `FST_ERR_HANDLER_TIMEOUT` (503 by default) through the
+route's error handler and aborts `request.signal` with that error as its reason.
+Handlers continue running; pass the signal to downstream operations such as
+`fetch` to cancel their work. If response headers have already been sent, Fastify
+closes the response instead.
 
 ### `bodyLimit`
 <a id="factory-body-limit"></a>

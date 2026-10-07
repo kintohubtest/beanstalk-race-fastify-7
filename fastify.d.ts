@@ -119,6 +119,7 @@ declare namespace fastify {
     maxRequestsPerSocket?: number,
     forceCloseConnections?: boolean | 'idle',
     requestTimeout?: number,
+    handlerTimeout?: number,
     pluginTimeout?: number,
     bodyLimit?: number,
     maxParamLength?: number,

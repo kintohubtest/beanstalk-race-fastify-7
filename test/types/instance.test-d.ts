@@ -314,6 +314,7 @@ server.setChildLoggerFactory(server.childLoggerFactory)
 
 type InitialConfig = Readonly<{
   connectionTimeout?: number,
+  handlerTimeout?: number,
   keepAliveTimeout?: number,
   bodyLimit?: number,
   caseSensitive?: boolean,
