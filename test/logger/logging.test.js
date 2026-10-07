@@ -12,6 +12,46 @@ const { once, on } = stream
 const { request } = require('./logger-test-utils')
 const { partialDeepStrictEqual } = require('../toolkit')
 
+t.test('conditionally disables request logs for plugin routes and errors', async t => {
+  const logStream = split(JSON.parse)
+  const logs = []
+  const requests = []
+  logStream.on('data', log => logs.push(log))
+  const fastify = Fastify({
+    logger: { stream: logStream },
+    disableRequestLogging: req => {
+      requests.push(req)
+      return req.url.includes('silent')
+    }
+  })
+  t.after(() => fastify.close())
+  fastify.register(async instance => {
+    instance.get('/:name', (req, reply) => {
+      req.log.info('custom log')
+      if (req.params.name.includes('error')) return reply.send(Error('failure'))
+      return 'ok'
+    })
+  })
+
+  for (const url of ['/health', '/silent-health', '/error', '/silent-error', '/missing/route', '/silent/missing']) {
+    logs.length = 0
+    const calls = requests.length
+    await fastify.inject(url)
+    t.assert.strictEqual(requests.length, calls + 1)
+    t.assert.strictEqual(requests[calls].url, url)
+    t.assert.ok(requests[calls].socket)
+    const automaticLogs = logs.filter(log => log.msg !== 'custom log')
+    if (url.includes('silent')) {
+      t.assert.deepStrictEqual(automaticLogs, [])
+    } else {
+      t.assert.ok(automaticLogs.length > 0)
+    }
+    if (!url.includes('/missing')) {
+      t.assert.strictEqual(logs.filter(log => log.msg === 'custom log').length, 1)
+    }
+  }
+})
+
 t.test('logging', { timeout: 60000 }, async (t) => {
   let localhost
   let localhostForURL
