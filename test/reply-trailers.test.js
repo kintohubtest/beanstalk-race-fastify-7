@@ -355,9 +355,48 @@ test('remove all trailers', (t, testDone) => {
     t.assert.ok(!res.headers.trailer)
     t.assert.ok(!res.trailers.etag)
     t.assert.ok(!res.trailers['should-not-call'])
-    t.assert.ok(!res.headers['content-length'])
+    t.assert.strictEqual(res.headers['content-length'], '0')
     testDone()
   })
+})
+
+test('removing all trailers restores content length for a nonempty payload', async t => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  fastify.get('/', (request, reply) => {
+    reply.trailer('ETag', () => t.assert.fail('removed trailer should not be called'))
+    t.assert.strictEqual(reply.removeTrailer('ETag'), reply)
+    t.assert.strictEqual(reply.hasTrailer('ETag'), false)
+    reply.send('hello')
+  })
+
+  const res = await fastify.inject('/')
+  t.assert.strictEqual(res.payload, 'hello')
+  t.assert.strictEqual(res.headers.trailer, undefined)
+  t.assert.strictEqual(res.headers['transfer-encoding'], undefined)
+  t.assert.strictEqual(res.headers['content-length'], '5')
+  t.assert.deepStrictEqual(res.trailers, {})
+})
+
+test('trailer callback can remove all trailers during iteration', async t => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  fastify.get('/', (request, reply) => {
+    reply.trailer('ETag', (reply, payload, done) => {
+      reply.removeTrailer('ETag')
+      reply.removeTrailer('Should-Not-Call')
+      done(null, 'custom-etag')
+    })
+    reply.trailer('Should-Not-Call', () => t.assert.fail('removed trailer should not be called'))
+    reply.send('hello')
+  })
+
+  const res = await fastify.inject('/')
+  t.assert.strictEqual(res.statusCode, 200)
+  t.assert.strictEqual(res.payload, 'hello')
+  t.assert.deepStrictEqual(res.trailers, { etag: 'custom-etag' })
 })
 
 test('hasTrailer', (t, testDone) => {
