@@ -1226,7 +1226,7 @@ test('onSend hooks run when an encapsulated route invokes the notFound handler',
 
 // https://github.com/fastify/fastify/issues/713
 test('preHandler option for setNotFoundHandler', async t => {
-  t.plan(10)
+  t.plan(11)
 
   await t.test('preHandler option', (t, done) => {
     t.plan(2)
@@ -1281,6 +1281,32 @@ test('preHandler option for setNotFoundHandler', async t => {
       t.assert.deepStrictEqual(payload, { preHandler: true, hello: 'world' })
       done()
     })
+  })
+
+  await t.test('callNotFound runs the not-found preHandler when the route is registered first', async t => {
+    const fastify = Fastify()
+
+    fastify.post('/', function (req, reply) {
+      t.assert.strictEqual(reply.callNotFound(), reply)
+    })
+
+    fastify.setNotFoundHandler({
+      preHandler: (req, reply, done) => {
+        req.body.preHandler = true
+        done()
+      }
+    }, function (req, reply) {
+      reply.code(404).send(req.body)
+    })
+
+    const res = await fastify.inject({
+      method: 'POST',
+      url: '/',
+      payload: { hello: 'world' }
+    })
+
+    t.assert.strictEqual(res.statusCode, 404)
+    t.assert.deepStrictEqual(res.json(), { preHandler: true, hello: 'world' })
   })
 
   await t.test('preHandler hook in setNotFoundHandler should accept an array of functions and be called when callNotFound', (t, done) => {

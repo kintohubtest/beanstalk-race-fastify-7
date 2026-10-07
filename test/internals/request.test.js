@@ -7,10 +7,26 @@ const Context = require('../../lib/context')
 const {
   kReply,
   kRequest,
+  kRequestContentType,
   kOptions
 } = require('../../lib/symbols')
 
 process.removeAllListeners('warning')
+
+test('mediaType is readonly and cached per request', t => {
+  const raw = { headers: { 'content-type': ' Application/JSON \t; charset=utf-8' } }
+  const request = new Request('id', {}, raw, {}, null, {})
+  t.assert.strictEqual(request.mediaType, 'application/json')
+  t.assert.throws(() => { request.mediaType = 'text/plain' }, TypeError)
+
+  raw.headers['content-type'] = 'text/plain'
+  t.assert.strictEqual(request.mediaType, 'application/json')
+  request[kRequestContentType] = undefined
+  t.assert.strictEqual(request.mediaType, 'text/plain')
+
+  const other = new Request('other', {}, { headers: {} }, {}, null, {})
+  t.assert.strictEqual(other.mediaType, '')
+})
 
 test('Regular request', t => {
   const headers = {
