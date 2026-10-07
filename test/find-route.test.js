@@ -103,6 +103,19 @@ test('findRoute should return the route when found', t => {
   t.assert.strictEqual(route.params.artistId, ':artistId')
 })
 
+test('findRoute should return the route for a lowercase method', t => {
+  t.plan(1)
+  const fastify = Fastify()
+
+  fastify.get('/artists/:artistId', (req, reply) => reply.send(req.params.artistId))
+
+  const route = fastify.findRoute({
+    method: 'get',
+    url: '/artists/:artistId'
+  })
+  t.assert.strictEqual(route.params.artistId, ':artistId')
+})
+
 test('findRoute should work correctly when used within plugins', (t, done) => {
   t.plan(1)
   const fastify = Fastify()
