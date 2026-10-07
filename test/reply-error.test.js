@@ -420,55 +420,61 @@ test('should set the status code and the headers from the error object (from cus
 })
 
 // Issue 595 https://github.com/fastify/fastify/issues/595
-test('\'*\' should throw an error due to serializer can not handle the payload type', (t, testDone) => {
-  t.plan(3)
+test('\'*\' should handle an error due to serializer can not handle the payload type', (t, testDone) => {
+  t.plan(6)
   const fastify = Fastify()
   t.after(() => fastify.close())
 
   fastify.get('/', (req, reply) => {
     reply.type('text/html')
-    try {
-      reply.send({})
-    } catch (err) {
-      t.assert.ok(err instanceof TypeError)
-      t.assert.strictEqual(err.code, 'FST_ERR_REP_INVALID_PAYLOAD_TYPE')
-      t.assert.strictEqual(err.message, "Attempted to send payload of invalid type 'object'. Expected a string or Buffer.")
-      testDone()
-    }
+    reply.send({})
+  })
+
+  fastify.setErrorHandler((err, req, reply) => {
+    t.assert.ok(err instanceof TypeError)
+    t.assert.strictEqual(err.code, 'FST_ERR_REP_INVALID_PAYLOAD_TYPE')
+    t.assert.strictEqual(err.message, "Attempted to send payload of invalid type 'object'. Expected a string or Buffer.")
+    reply.send(err)
   })
 
   fastify.inject({
     url: '/',
     method: 'GET'
   }, (e, res) => {
-    t.assert.fail('should not be called')
+    t.assert.ifError(e)
+    t.assert.strictEqual(res.statusCode, 500)
+    t.assert.strictEqual(res.json().code, 'FST_ERR_REP_INVALID_PAYLOAD_TYPE')
+    testDone()
   })
 })
 
-test('should throw an error if the custom serializer does not serialize the payload to a valid type', (t, testDone) => {
-  t.plan(3)
+test('should handle an error if the custom serializer does not serialize the payload to a valid type', (t, testDone) => {
+  t.plan(6)
   const fastify = Fastify()
   t.after(() => fastify.close())
 
   fastify.get('/', (req, reply) => {
-    try {
-      reply
-        .type('text/html')
-        .serializer(payload => payload)
-        .send({})
-    } catch (err) {
-      t.assert.ok(err instanceof TypeError)
-      t.assert.strictEqual(err.code, 'FST_ERR_REP_INVALID_PAYLOAD_TYPE')
-      t.assert.strictEqual(err.message, "Attempted to send payload of invalid type 'object'. Expected a string or Buffer.")
-      testDone()
-    }
+    reply
+      .type('text/html')
+      .serializer(payload => payload)
+      .send({})
+  })
+
+  fastify.setErrorHandler((err, req, reply) => {
+    t.assert.ok(err instanceof TypeError)
+    t.assert.strictEqual(err.code, 'FST_ERR_REP_INVALID_PAYLOAD_TYPE')
+    t.assert.strictEqual(err.message, "Attempted to send payload of invalid type 'object'. Expected a string or Buffer.")
+    reply.send(err)
   })
 
   fastify.inject({
     url: '/',
     method: 'GET'
   }, (e, res) => {
-    t.assert.fail('should not be called')
+    t.assert.ifError(e)
+    t.assert.strictEqual(res.statusCode, 500)
+    t.assert.strictEqual(res.json().code, 'FST_ERR_REP_INVALID_PAYLOAD_TYPE')
+    testDone()
   })
 })
 
