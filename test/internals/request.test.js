@@ -7,10 +7,28 @@ const Context = require('../../lib/context')
 const {
   kReply,
   kRequest,
-  kOptions
+  kOptions,
+  kRequestContentType
 } = require('../../lib/symbols')
 
 process.removeAllListeners('warning')
+
+test('mediaType is readonly and caches the parsed content type', t => {
+  for (const RequestType of [Request, Request.buildRequest(Request), Request.buildRequest(Request, true)]) {
+    const request = new RequestType('id', {}, { headers: {} })
+    t.assert.strictEqual(request.mediaType, '')
+    request[kRequestContentType] = undefined
+    request.headers['content-type'] = ' \tApplication/JSON ; charset=utf-8'
+    t.assert.strictEqual(request.mediaType, 'application/json')
+    const cached = request[kRequestContentType]
+    request.headers['content-type'] = 'text/plain'
+    t.assert.strictEqual(request.mediaType, 'application/json')
+    t.assert.strictEqual(request[kRequestContentType], cached)
+    t.assert.throws(() => { request.mediaType = 'text/plain' }, TypeError)
+    request[kRequestContentType] = undefined
+    t.assert.strictEqual(request.mediaType, 'text/plain')
+  }
+})
 
 test('Regular request', t => {
   const headers = {
@@ -412,6 +430,25 @@ test('Request with trust proxy - handles multiple entries in x-forwarded-host/pr
   t.assert.strictEqual(request.host, 'example.com')
   t.assert.strictEqual(request.protocol, 'https')
 })
+
+for (const socket of [undefined, null]) {
+  test(`Request with trust proxy and ${socket} socket ignores forwarded host/proto`, t => {
+    t.plan(2)
+    const req = {
+      socket,
+      headers: {
+        host: 'localhost',
+        'x-forwarded-host': 'example.com',
+        'x-forwarded-proto': 'https'
+      }
+    }
+    const TpRequest = Request.buildRequest(Request, true)
+    const request = new TpRequest('id', 'params', req, 'query', 'log')
+
+    t.assert.strictEqual(request.host, 'localhost')
+    t.assert.strictEqual(request.protocol, undefined)
+  })
+}
 
 for (const remoteAddress of [undefined, null, '127.0.0.1', '192.0.2.1']) {
   for (const trustProxy of [1, '127.0.0.1']) {
