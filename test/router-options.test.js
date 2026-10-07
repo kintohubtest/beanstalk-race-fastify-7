@@ -9,6 +9,45 @@ const {
   FST_ERR_ASYNC_CONSTRAINT
 } = require('../lib/errors')
 
+test('Should allow reusing a routerOptions object across instances', async t => {
+  t.plan(2)
+
+  const routerOptions = { maxParamLength: 2048 }
+  const app1 = Fastify({ routerOptions })
+  t.after(() => app1.close())
+  const app2 = Fastify({ routerOptions })
+  t.after(() => app2.close())
+
+  const response1 = await app1.inject('/not-found')
+  const response2 = await app2.inject('/not-found')
+  t.assert.strictEqual(response1.statusCode, 404)
+  t.assert.strictEqual(response2.statusCode, 404)
+})
+
+test('Should not mutate user-provided routerOptions object', async t => {
+  t.plan(1)
+
+  const routerOptions = { maxParamLength: 2048 }
+  const app = Fastify({ routerOptions })
+  t.after(() => app.close())
+
+  await app.ready()
+
+  t.assert.deepStrictEqual(routerOptions, { maxParamLength: 2048 })
+})
+
+test('Should preserve extra router options in initialConfig', async t => {
+  t.plan(1)
+
+  const buildPrettyMeta = route => ({ path: route.path })
+  const app = Fastify({ routerOptions: { buildPrettyMeta } })
+  t.after(() => app.close())
+
+  await app.ready()
+
+  t.assert.strictEqual(app.initialConfig.routerOptions.buildPrettyMeta, buildPrettyMeta)
+})
+
 test('Should honor ignoreTrailingSlash option', async t => {
   t.plan(4)
   const fastify = Fastify({
