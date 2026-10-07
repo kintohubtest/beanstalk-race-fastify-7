@@ -66,3 +66,20 @@ test('http2 plain test', async t => {
     t.assert.strictEqual(JSON.parse(res.body).port, parseInt(host.split(':')[1]))
   })
 })
+
+test('http2 large multibyte replies preserve their body and content length', async t => {
+  const fastify = Fastify({ http2: true })
+  const payload = '€😀'.repeat(32 * 1024)
+  fastify.get('/', async () => payload)
+  t.after(() => fastify.close())
+  await fastify.listen({ port: 0 })
+
+  const url = `http://localhost:${fastify.server.address().port}`
+  const res = await h2url.concat({ url })
+  t.assert.strictEqual(res.body, payload)
+  t.assert.strictEqual(res.headers['content-length'], String(Buffer.byteLength(payload)))
+
+  const head = await h2url.concat({ url, method: 'HEAD' })
+  t.assert.strictEqual(head.body, '')
+  t.assert.strictEqual(head.headers['content-length'], res.headers['content-length'])
+})
