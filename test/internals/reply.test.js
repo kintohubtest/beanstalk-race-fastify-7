@@ -1883,13 +1883,18 @@ test('reply.send will intercept ERR_HTTP_HEADERS_SENT and log an error message',
     }
   }
 
-  const reply = new Reply(response, { [kRouteContext]: { onSend: null }, raw: { url: '/hello', method: 'GET' } }, log)
-
-  try {
-    reply.send('')
-  } catch (err) {
-    t.assert.strictEqual(err.code, 'ERR_HTTP_HEADERS_SENT')
+  const context = {
+    onSend: null,
+    onError: null,
+    errorHandler: {
+      func: (err) => {
+        t.assert.strictEqual(err.code, 'ERR_HTTP_HEADERS_SENT')
+      }
+    }
   }
+  const reply = new Reply(response, { [kRouteContext]: context, raw: { url: '/hello', method: 'GET' } }, log)
+
+  reply.send('')
 })
 
 test('Uint8Array view of ArrayBuffer returns correct byteLength', (t, done) => {
