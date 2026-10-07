@@ -5,7 +5,7 @@ const errors = require('../../lib/errors')
 const { readFileSync } = require('node:fs')
 const { resolve } = require('node:path')
 
-const expectedErrors = 88
+const expectedErrors = 89
 
 test(`should expose ${expectedErrors} errors`, t => {
   t.plan(1)
@@ -165,7 +165,7 @@ test('FST_ERR_CTP_INVALID_MEDIA_TYPE', t => {
   const error = new errors.FST_ERR_CTP_INVALID_MEDIA_TYPE()
   t.assert.strictEqual(error.name, 'FastifyError')
   t.assert.strictEqual(error.code, 'FST_ERR_CTP_INVALID_MEDIA_TYPE')
-  t.assert.strictEqual(error.message, 'Unsupported Media Type: %s')
+  t.assert.strictEqual(error.message, 'Unsupported Media Type')
   t.assert.strictEqual(error.statusCode, 415)
   t.assert.ok(error instanceof Error)
 })
@@ -656,6 +656,16 @@ test('FST_ERR_ROUTE_OPTIONS_NOT_OBJ', t => {
   t.assert.strictEqual(error.name, 'FastifyError')
   t.assert.strictEqual(error.code, 'FST_ERR_ROUTE_OPTIONS_NOT_OBJ')
   t.assert.strictEqual(error.message, 'Options for "%s:%s" route must be an object')
+  t.assert.strictEqual(error.statusCode, 500)
+  t.assert.ok(error instanceof TypeError)
+})
+
+test('FST_ERR_ROUTE_LOG_LEVEL_INVALID', t => {
+  t.plan(5)
+  const error = new errors.FST_ERR_ROUTE_LOG_LEVEL_INVALID()
+  t.assert.strictEqual(error.name, 'FastifyError')
+  t.assert.strictEqual(error.code, 'FST_ERR_ROUTE_LOG_LEVEL_INVALID')
+  t.assert.strictEqual(error.message, "Log level for '%s:%s' route must be a valid logger level. Received: '%s'")
   t.assert.strictEqual(error.statusCode, 500)
   t.assert.ok(error instanceof TypeError)
 })

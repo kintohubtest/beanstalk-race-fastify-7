@@ -508,6 +508,12 @@ Different log levels can be set for routes in Fastify by passing the `logLevel`
 option to the plugin or route with the desired
 [value](https://github.com/pinojs/pino/blob/master/docs/api.md#level-string).
 
+Log levels are validated during route registration. An invalid value throws
+[`FST_ERR_ROUTE_LOG_LEVEL_INVALID`](./Errors.md#fst_err_route_log_level_invalid).
+The `silent` level is supported. Custom levels must be available as methods on
+the logger instance; configure Pino's `customLevels` on the root logger before
+using them in a plugin or route.
+
 Be aware that setting `logLevel` at the plugin level also affects
 [`setNotFoundHandler`](./Server.md#setnotfoundhandler) and
 [`setErrorHandler`](./Server.md#seterrorhandler).
