@@ -1,6 +1,8 @@
 import { FastifyErrorConstructor } from '@fastify/error'
 
 export type FastifyErrorCodes = Record<
+  'FST_ERR_HANDLER_TIMEOUT' |
+  'FST_ERR_ROUTE_HANDLER_TIMEOUT_OPTION_NOT_INT' |
   'FST_ERR_NOT_FOUND' |
   'FST_ERR_OPTIONS_NOT_OBJ' |
   'FST_ERR_QSP_NOT_FN' |

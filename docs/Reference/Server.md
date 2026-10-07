@@ -17,6 +17,7 @@ describes the properties available in that options object.
   - [`forceCloseConnections`](#forcecloseconnections)
   - [`maxRequestsPerSocket`](#maxrequestspersocket)
   - [`requestTimeout`](#requesttimeout)
+  - [`handlerTimeout`](#handlertimeout)
   - [`bodyLimit`](#bodylimit)
   - [`onProtoPoisoning`](#onprotopoisoning)
   - [`onConstructorPoisoning`](#onconstructorpoisoning)
@@ -223,6 +224,24 @@ in front.
 
 > ℹ️ Note:
 >  At the time of writing, only node >= v14.11.0 supports this option
+
+### `handlerTimeout`
+
++ Default: `0` (disabled)
+
+Sets an application timeout in milliseconds, independent of socket timeouts and
+HTTP keep-alive. Routes inherit this value and can override it with a positive
+integer `handlerTimeout` route option. The timeout starts before `onRequest` and
+is cleared when the response finishes or `reply.hijack()` is called.
+
+On timeout, Fastify sends a `503` error with code `FST_ERR_HANDLER_TIMEOUT` through
+the route's error handler and aborts `request.signal`. Handlers continue running;
+pass the signal to downstream operations such as `fetch` to cancel their work.
+If response headers have already been sent, Fastify closes the response instead.
+Client disconnects also abort the signal, with an `AbortError` reason.
+
+When disabled, no timer or abort controller is created unless the handler reads
+`request.signal`, which lazily creates a signal for client disconnects.
 
 ### `bodyLimit`
 <a id="factory-body-limit"></a>
