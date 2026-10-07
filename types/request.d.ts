@@ -25,6 +25,7 @@ export interface RequestRouteOptions<ContextConfig = ContextConfigDefault, Schem
   // `url` can be `undefined` for instance when `request.is404` is true
   url: string | undefined;
   bodyLimit: number;
+  handlerTimeout: number;
   attachValidation: boolean;
   logLevel: string;
   exposeHeadRoute: boolean;
@@ -54,6 +55,7 @@ export interface FastifyRequest<RouteGeneric extends RouteGenericInterface = Rou
 //   the RequestType (preferred) or swap Logger and RequestType arguments when
 //   creating custom types of FastifyRequest. Related issue #4123
 > {
+  readonly signal: AbortSignal;
   id: string;
   params: RequestType['params']; // deferred inference
   raw: RawRequest;
