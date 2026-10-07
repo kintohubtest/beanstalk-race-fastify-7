@@ -3,6 +3,7 @@
 const { test, before } = require('node:test')
 const fastify = require('..')
 const helper = require('./helper')
+const Request = require('../lib/request')
 
 const fetchForwardedRequest = async (fastifyServer, forHeader, path, protoHeader) => {
   const headers = {
@@ -46,6 +47,30 @@ let localhost
 before(async function () {
   [localhost] = await helper.getLoopbackHost()
 })
+
+for (const remoteAddress of [undefined, null, '127.0.0.1', '192.0.2.1']) {
+  for (const trustProxy of [1, '127.0.0.1', address => address === '127.0.0.1']) {
+    test(`trust proxy ${trustProxy} with socket address ${remoteAddress}`, t => {
+      const TpRequest = Request.buildRequest(Request, trustProxy)
+      const request = new TpRequest('id', {}, {
+        socket: { remoteAddress },
+        headers: {
+          host: 'direct.test',
+          'x-forwarded-for': '2.2.2.2, 1.1.1.1',
+          'x-forwarded-host': 'forwarded.test',
+          'x-forwarded-proto': 'https'
+        }
+      }, {}, {})
+      const trusted = remoteAddress == null || trustProxy === 1 || remoteAddress === '127.0.0.1'
+      t.assert.strictEqual(request.host, trusted ? 'forwarded.test' : 'direct.test')
+      t.assert.strictEqual(request.protocol, trusted ? 'https' : 'http')
+      if (trustProxy === 1) {
+        t.assert.strictEqual(request.ip, '1.1.1.1')
+        t.assert.deepStrictEqual(request.ips, [remoteAddress, '1.1.1.1'])
+      }
+    })
+  }
+}
 
 test('trust proxy, not add properties to node req', async t => {
   t.plan(13)
