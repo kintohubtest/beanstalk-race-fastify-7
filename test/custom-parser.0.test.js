@@ -311,7 +311,7 @@ test('the content type handler should be a function', t => {
   const fastify = Fastify()
 
   try {
-    fastify.addContentTypeParser('aaa', null)
+    fastify.addContentTypeParser('aaa/foo', null)
     t.assert.fail()
   } catch (err) {
     t.assert.strictEqual(err.code, 'FST_ERR_CTP_INVALID_HANDLER')
@@ -354,7 +354,7 @@ test('catch all content type parser', async (t) => {
     method: 'POST',
     body: 'hello',
     headers: {
-      'Content-Type': 'very-weird-content-type'
+      'Content-Type': 'very-weird-content-type/foo'
     }
   })
 
@@ -404,7 +404,7 @@ test('catch all content type parser should not interfere with other conte type p
     method: 'POST',
     body: 'hello',
     headers: {
-      'Content-Type': 'very-weird-content-type'
+      'Content-Type': 'very-weird-content-type/foo'
     }
   })
 

@@ -14,11 +14,45 @@ import { FastifyReply } from '../../types/reply'
 import { FastifyRequest } from '../../types/request'
 import { FastifySchemaControllerOptions, FastifySchemaCompiler, FastifySerializerCompiler } from '../../types/schema'
 import { AddressInfo } from 'node:net'
+import { Http2Server } from 'node:http2'
 import { Bindings, ChildLoggerOptions } from '../../types/logger'
 import { ConstraintStrategy } from 'find-my-way'
 import { FindMyWayVersion } from '../../types/instance'
 
 const server = fastify()
+
+fastify({
+  routerOptions: {
+    defaultRoute (req, res) {
+      expectType<RawRequestDefaultExpression>(req)
+      expectType<RawReplyDefaultExpression>(res)
+      expectError(res.send('Not found'))
+      res.end('Not found')
+    },
+    onBadUrl (path, req, res) {
+      expectType<string>(path)
+      expectType<RawRequestDefaultExpression>(req)
+      expectType<RawReplyDefaultExpression>(res)
+      expectError(res.send('Bad URL'))
+      res.end('Bad URL')
+    }
+  }
+})
+
+fastify({
+  http2: true,
+  routerOptions: {
+    defaultRoute (req, res) {
+      expectType<RawRequestDefaultExpression<Http2Server>>(req)
+      expectType<RawReplyDefaultExpression<Http2Server>>(res)
+    },
+    onBadUrl (path, req, res) {
+      expectType<string>(path)
+      expectType<RawRequestDefaultExpression<Http2Server>>(req)
+      expectType<RawReplyDefaultExpression<Http2Server>>(res)
+    }
+  }
+})
 
 expectAssignable<FastifyInstance>(server.addSchema({
   type: 'null'
@@ -340,11 +374,11 @@ type InitialConfig = Readonly<{
     constraints?: {
       [name: string]: ConstraintStrategy<FindMyWayVersion<RawServerDefault>, unknown>
     }
-    defaultRoute?: (req: FastifyRequest, res: FastifyReply) => void,
+    defaultRoute?: (req: RawRequestDefaultExpression, res: RawReplyDefaultExpression) => void,
     ignoreDuplicateSlashes?: boolean,
     ignoreTrailingSlash?: boolean,
     maxParamLength?: number,
-    onBadUrl?: (path: string, req: FastifyRequest, res: FastifyReply) => void,
+    onBadUrl?: (path: string, req: RawRequestDefaultExpression, res: RawReplyDefaultExpression) => void,
     querystringParser?: (str: string) => { [key: string]: unknown },
     useSemicolonDelimiter?: boolean,
   }
