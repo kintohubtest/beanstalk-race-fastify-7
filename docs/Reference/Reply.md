@@ -688,6 +688,11 @@ If you are sending a stream and you have not set a `'Content-Type'` header,
 As noted above, streams are considered to be pre-serialized, so they will be
 sent unmodified without response validation.
 
+For HTTP/2, applications should split large stream emissions into small chunks
+(for example, 16 KiB) and respect backpressure. Fastify chunks large non-stream
+replies automatically, but does not split chunks emitted by user-provided streams.
+Large stream writes can disrupt the HTTP/2 session if the client cancels the reply.
+
 See special note about error handling for streams in
 [`setErrorHandler`](./Server.md#seterrorhandler).
 
