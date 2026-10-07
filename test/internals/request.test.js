@@ -503,6 +503,30 @@ test('Request with undefined socket', t => {
   t.assert.ok(request.compileValidationSchema instanceof Function)
 })
 
+test('Request with trust proxy and null or undefined remote address', t => {
+  t.plan(12)
+  const TpRequest = Request.buildRequest(Request, 1)
+
+  for (const remoteAddress of [undefined, null]) {
+    for (const forwardedIp of [undefined, '1.1.1.1']) {
+      const headers = {
+        host: 'localhost',
+        'x-forwarded-host': 'example.com',
+        'x-forwarded-proto': 'https'
+      }
+      if (forwardedIp) {
+        headers['x-forwarded-for'] = forwardedIp
+      }
+      const req = { socket: { remoteAddress }, headers }
+      const request = new TpRequest('id', 'params', req, 'query', 'log')
+
+      t.assert.strictEqual(request.ip, forwardedIp ?? remoteAddress)
+      t.assert.strictEqual(request.host, forwardedIp ? 'example.com' : 'localhost')
+      t.assert.strictEqual(request.protocol, forwardedIp ? 'https' : 'http')
+    }
+  }
+})
+
 test('Request with trust proxy and undefined socket', t => {
   t.plan(1)
   const headers = {
