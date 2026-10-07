@@ -7,7 +7,7 @@ const Request = require('../../lib/request')
 const Reply = require('../../lib/reply')
 
 test('diagnostics channel events report on errors', async t => {
-  t.plan(14)
+  t.plan(15)
   let callOrder = 0
   let firstEncounteredMessage
 
@@ -31,6 +31,7 @@ test('diagnostics channel events report on errors', async t => {
     t.assert.ok(msg.error instanceof Error)
     t.assert.strictEqual(callOrder++, 1)
     t.assert.strictEqual(msg.error.message, 'borked')
+    t.assert.strictEqual(msg.reply.statusCode, 500)
   })
 
   const fastify = Fastify()

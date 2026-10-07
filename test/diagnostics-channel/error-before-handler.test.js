@@ -9,7 +9,7 @@ const symbols = require('../../lib/symbols.js')
 const { preHandlerCallback } = require('../../lib/handle-request')[Symbol.for('internals')]
 
 test('diagnostics channel handles an error before calling context handler', t => {
-  t.plan(3)
+  t.plan(4)
   let callOrder = 0
 
   diagnostics.subscribe('tracing:fastify.request.handler:start', (msg) => {
@@ -19,6 +19,7 @@ test('diagnostics channel handles an error before calling context handler', t =>
   diagnostics.subscribe('tracing:fastify.request.handler:error', (msg) => {
     t.assert.strictEqual(callOrder++, 1)
     t.assert.strictEqual(msg.error.message, 'oh no')
+    t.assert.strictEqual(msg.reply.statusCode, 500)
   })
 
   const error = new Error('oh no')
