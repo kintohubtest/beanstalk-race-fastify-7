@@ -198,6 +198,33 @@ describe('trailer handler counter', () => {
   hash.update(data)
   const md5 = hash.digest('hex')
 
+  for (const callbackFirst of [true, false]) {
+    test(`mixed callback and promise trailers with ${callbackFirst ? 'callback' : 'promise'} completing first`, async t => {
+      const fastify = Fastify()
+      t.after(() => fastify.close())
+
+      fastify.get('/', function (request, reply) {
+        reply.trailer('Mixed', function (reply, payload, done) {
+          if (callbackFirst) {
+            done(null, 'first')
+            return Promise.resolve('duplicate')
+          }
+          setTimeout(() => done(null, 'duplicate'), 10)
+          return Promise.resolve('first')
+        })
+        reply.trailer('Async', async function () {
+          await sleep(20)
+          return 'async'
+        })
+        reply.send(data)
+      })
+
+      const res = await fastify.inject('/')
+      t.assert.strictEqual(res.statusCode, 200)
+      t.assert.deepStrictEqual(res.trailers, { mixed: 'first', async: 'async' })
+    })
+  }
+
   test('callback with timeout', (t, testDone) => {
     t.plan(9)
     const fastify = Fastify()
