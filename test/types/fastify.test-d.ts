@@ -115,6 +115,13 @@ expectAssignable<FastifyInstance>(fastify({ pluginTimeout: 1000 }))
 expectAssignable<FastifyInstance>(fastify({ bodyLimit: 100 }))
 expectAssignable<FastifyInstance>(fastify({ maxParamLength: 100 }))
 expectAssignable<FastifyInstance>(fastify({ disableRequestLogging: true }))
+expectAssignable<FastifyInstance>(fastify({
+  disableRequestLogging: req => {
+    expectType<http.IncomingMessage>(req)
+    return req.url === '/healthcheck'
+  }
+}))
+expectError(fastify({ disableRequestLogging: async () => true }))
 expectAssignable<FastifyInstance>(fastify({ requestIdLogLabel: 'request-id' }))
 expectAssignable<FastifyInstance>(fastify({ onProtoPoisoning: 'error' }))
 expectAssignable<FastifyInstance>(fastify({ onConstructorPoisoning: 'error' }))
