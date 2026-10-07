@@ -151,7 +151,7 @@ function fastify (serverOptions) {
     [kServerBindings]: [],
     [kBodyLimit]: options.bodyLimit,
     [kRoutePrefix]: '',
-    [kLogLevel]: '',
+    [kLogLevel]: undefined,
     [kLogSerializers]: null,
     [kHooks]: new Hooks(),
     [kSchemaController]: schemaController,
