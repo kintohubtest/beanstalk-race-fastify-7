@@ -339,17 +339,35 @@ type InitialConfig = Readonly<{
     constraints?: {
       [name: string]: ConstraintStrategy<FindMyWayVersion<RawServerDefault>, unknown>
     }
-    defaultRoute?: (req: FastifyRequest, res: FastifyReply) => void,
+    defaultRoute?: (req: RawRequestDefaultExpression, res: RawReplyDefaultExpression) => void,
     ignoreDuplicateSlashes?: boolean,
     ignoreTrailingSlash?: boolean,
     maxParamLength?: number,
-    onBadUrl?: (path: string, req: FastifyRequest, res: FastifyReply) => void,
+    onBadUrl?: (path: string, req: RawRequestDefaultExpression, res: RawReplyDefaultExpression) => void,
     querystringParser?: (str: string) => { [key: string]: unknown },
     useSemicolonDelimiter?: boolean,
   }
 }>
 
 expectType<InitialConfig>(fastify().initialConfig)
+
+fastify({
+  routerOptions: {
+    defaultRoute (req, res) {
+      expectType<RawRequestDefaultExpression>(req)
+      expectType<RawReplyDefaultExpression>(res)
+      expectError(res.send('Not found'))
+      res.end('Not found')
+    },
+    onBadUrl (path, req, res) {
+      expectType<string>(path)
+      expectType<RawRequestDefaultExpression>(req)
+      expectType<RawReplyDefaultExpression>(res)
+      expectError(res.send('Bad URL'))
+      res.end('Bad URL')
+    }
+  }
+})
 
 expectType<FastifyBodyParser<string>>(server.defaultTextParser)
 
