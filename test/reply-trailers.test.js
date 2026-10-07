@@ -198,6 +198,44 @@ describe('trailer handler counter', () => {
   hash.update(data)
   const md5 = hash.digest('hex')
 
+  const duplicateHandlers = {
+    'callback before promise': (reply, payload, done) => {
+      done(null, 'first')
+      return Promise.resolve('second')
+    },
+    'promise before callback': (reply, payload, done) => {
+      setImmediate(() => done(null, 'second'))
+      return Promise.resolve('first')
+    },
+    'callback twice': (reply, payload, done) => {
+      done(null, 'first')
+      done(null, 'second')
+    }
+  }
+
+  for (const [name, handler] of Object.entries(duplicateHandlers)) {
+    test(`ignore duplicate trailer completions: ${name}`, async (t) => {
+      const fastify = Fastify()
+      t.after(() => fastify.close())
+
+      fastify.get('/', function (request, reply) {
+        reply.trailer('Delayed', async function () {
+          await sleep(10)
+          return 'delayed'
+        })
+        reply.trailer('Duplicate', handler)
+        reply.send('hello')
+      })
+
+      const res = await fastify.inject('/')
+      t.assert.strictEqual(res.statusCode, 200)
+      t.assert.deepStrictEqual(res.trailers, {
+        delayed: 'delayed',
+        duplicate: 'first'
+      })
+    })
+  }
+
   test('callback with timeout', (t, testDone) => {
     t.plan(9)
     const fastify = Fastify()
