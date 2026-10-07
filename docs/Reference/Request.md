@@ -11,6 +11,8 @@ Request is a core Fastify object containing the following fields:
   other content types.
 - `params` - The params matching the URL.
 - [`headers`](#headers) - The headers getter and setter.
+- `mediaType` - The readonly, lowercase media type from the `Content-Type` header,
+  without parameters. Returns an empty string when the header is absent or invalid.
 - `raw` - The incoming HTTP request from Node core.
 - `server` - The Fastify server instance, scoped to the current
   [encapsulation context](./Encapsulation.md).

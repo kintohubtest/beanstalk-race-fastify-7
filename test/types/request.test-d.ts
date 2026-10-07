@@ -61,6 +61,8 @@ interface CustomLoggerInterface extends FastifyLoggerInstance {
 }
 
 const getHandler: RouteHandler = function (request, _reply) {
+  expectType<string>(request.mediaType)
+  expectError(request.mediaType = 'text/plain')
   expectType<string>(request.url)
   expectType<string>(request.originalUrl)
   expectType<string>(request.method)
