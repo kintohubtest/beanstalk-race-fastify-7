@@ -421,3 +421,43 @@ t.test('logging', { timeout: 60000 }, async (t) => {
     t.assert.strictEqual(stream.readableLength, 0)
   })
 })
+
+t.test('conditional request logging evaluates once and covers plugin routes and errors', async (t) => {
+  const stream = split(JSON.parse)
+  const logs = []
+  const requests = []
+  stream.on('data', log => logs.push(log))
+  const fastify = Fastify({
+    logger: { stream },
+    disableRequestLogging: req => {
+      requests.push(req)
+      return req.url.includes('silent')
+    }
+  })
+  t.after(() => fastify.close())
+
+  fastify.register(async function (instance) {
+    instance.get('/healthcheck', (req, reply) => reply.send('ok'))
+    instance.get('/silent-healthcheck', (req, reply) => reply.send('ok'))
+    instance.get('/error', () => { throw new Error('failure') })
+    instance.get('/silent-error', () => { throw new Error('failure') })
+  })
+
+  for (const [url, statusCode, messages] of [
+    ['/silent-healthcheck', 200, []],
+    ['/healthcheck', 200, ['incoming request', 'request completed']],
+    ['/silent-error', 500, []],
+    ['/error', 500, ['incoming request', 'failure', 'request completed']],
+    ['/silent-missing', 404, []],
+    ['/missing', 404, ['incoming request', 'Route GET:/missing not found', 'request completed']]
+  ]) {
+    logs.length = 0
+    const count = requests.length
+    const response = await fastify.inject(url)
+    t.assert.strictEqual(response.statusCode, statusCode)
+    t.assert.strictEqual(requests.length, count + 1)
+    t.assert.strictEqual(requests[count].url, url)
+    t.assert.ok(requests[count].socket)
+    t.assert.deepStrictEqual(logs.map(log => log.msg), messages)
+  }
+})

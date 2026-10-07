@@ -98,7 +98,8 @@ const schema = {
     ignoreTrailingSlash: { type: 'boolean', default: defaultInitOptions.ignoreTrailingSlash },
     ignoreDuplicateSlashes: { type: 'boolean', default: defaultInitOptions.ignoreDuplicateSlashes },
     disableRequestLogging: {
-      type: 'boolean',
+      if: { isFunction: true },
+      else: { type: 'boolean' },
       default: false
     },
     maxParamLength: { type: 'integer', default: defaultInitOptions.maxParamLength },
@@ -149,6 +150,12 @@ const compiler = factory({}, {
     useDefaults: true,
     coerceTypes: true,
     keywords: [
+      {
+        keyword: 'isFunction',
+        code (keywordCxt) {
+          keywordCxt.fail(_`typeof ${keywordCxt.data} !== 'function'`)
+        }
+      },
       {
         keyword: 'setDefaultValue',
         $data: true,
