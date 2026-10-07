@@ -17,6 +17,7 @@ describes the properties available in that options object.
   - [`forceCloseConnections`](#forcecloseconnections)
   - [`maxRequestsPerSocket`](#maxrequestspersocket)
   - [`requestTimeout`](#requesttimeout)
+  - [`handlerTimeout`](#handlertimeout)
   - [`bodyLimit`](#bodylimit)
   - [`onProtoPoisoning`](#onprotopoisoning)
   - [`onConstructorPoisoning`](#onconstructorpoisoning)
@@ -223,6 +224,25 @@ in front.
 
 > ℹ️ Note:
 >  At the time of writing, only node >= v14.11.0 supports this option
+
+### `handlerTimeout`
+<a id="factory-handler-timeout"></a>
+
++ Default: `0` (disabled)
+
+Sets an application timeout in milliseconds, starting before `onRequest` and ending
+when the response finishes. Routes inherit this value and can override it with a
+positive integer `handlerTimeout` option. It operates per request, including on
+HTTP keep-alive connections.
+
+On timeout, Fastify aborts `request.signal` with `FST_ERR_HANDLER_TIMEOUT` and sends
+a 503 error through the route's error handler. Handlers continue running and should
+pass `request.signal` to operations that support cancellation, such as `fetch`.
+If response headers have already been sent, Fastify destroys the response instead.
+`reply.hijack()` removes the timeout and disconnect listeners.
+
+When disabled, no timer, controller or listeners are created unless the handler
+accesses `request.signal`, which lazily enables client disconnect cancellation.
 
 ### `bodyLimit`
 <a id="factory-body-limit"></a>
@@ -2139,6 +2159,7 @@ The properties that can currently be exposed are:
 - connectionTimeout
 - keepAliveTimeout
 - bodyLimit
+- handlerTimeout
 - caseSensitive
 - http2
 - https (it will return `false`/`true` or `{ allowHTTP1: true/false }` if

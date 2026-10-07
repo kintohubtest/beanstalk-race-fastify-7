@@ -64,6 +64,8 @@ const getHandler: RouteHandler = function (request, _reply) {
   expectType<string>(request.url)
   expectType<string>(request.originalUrl)
   expectType<string>(request.method)
+  expectType<AbortSignal>(request.signal)
+  expectType<number>(request.routeOptions.handlerTimeout)
   expectType<Readonly<RequestRouteOptions>>(request.routeOptions)
   expectType<boolean>(request.is404)
   expectType<string>(request.hostname)

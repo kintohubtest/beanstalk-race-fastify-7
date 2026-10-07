@@ -585,6 +585,7 @@ export interface FastifyInstance<
    *  Frozen read-only object registering the initial options passed down by the user to the fastify instance
    */
   initialConfig: Readonly<{
+    handlerTimeout?: number,
     connectionTimeout?: number,
     keepAliveTimeout?: number,
     forceCloseConnections?: boolean,
