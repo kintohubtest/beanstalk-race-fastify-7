@@ -241,6 +241,24 @@ test('Prefix with trailing /', (t, testDone) => {
   completion.patience.then(testDone)
 })
 
+test('Prefix with trailing / and nested prefix without leading /', async t => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  fastify.register(async function (instance) {
+    instance.register(async function (sub) {
+      sub.get('/route', () => ({ hello: 'world' }))
+    }, { prefix: 'inner' })
+  }, { prefix: '/v1/' })
+
+  const response = await fastify.inject('/v1/inner/route')
+  t.assert.strictEqual(response.statusCode, 200)
+  t.assert.deepStrictEqual(response.json(), { hello: 'world' })
+
+  const duplicateSlashResponse = await fastify.inject('/v1//inner/route')
+  t.assert.strictEqual(duplicateSlashResponse.statusCode, 404)
+})
+
 test('Prefix works multiple levels deep', (t, testDone) => {
   t.plan(2)
   const fastify = Fastify()
