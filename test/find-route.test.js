@@ -103,6 +103,22 @@ test('findRoute should return the route when found', t => {
   t.assert.strictEqual(route.params.artistId, ':artistId')
 })
 
+test('findRoute should find a route even if method is not uppercased', t => {
+  t.plan(2)
+  const fastify = Fastify()
+  const handler = (req, reply) => reply.send(req.params.artistId)
+
+  fastify.get('/artists/:artistId', handler)
+
+  const route = fastify.findRoute({
+    method: 'get',
+    url: '/artists/123'
+  })
+
+  t.assert.notStrictEqual(route, null)
+  t.assert.strictEqual(route.params.artistId, '123')
+})
+
 test('findRoute should work correctly when used within plugins', (t, done) => {
   t.plan(1)
   const fastify = Fastify()
