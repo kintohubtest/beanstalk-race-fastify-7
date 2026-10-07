@@ -81,6 +81,7 @@ export interface FastifyRequest<RouteGeneric extends RouteGenericInterface = Rou
   readonly originalUrl: string;
   readonly protocol: 'http' | 'https';
   readonly method: string;
+  readonly mediaType: string;
   readonly routeOptions: Readonly<RequestRouteOptions<ContextConfig, SchemaCompiler>>
   readonly is404: boolean;
   readonly socket: RawRequest['socket'];
