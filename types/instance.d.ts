@@ -586,6 +586,7 @@ export interface FastifyInstance<
    */
   initialConfig: Readonly<{
     connectionTimeout?: number,
+    handlerTimeout?: number,
     keepAliveTimeout?: number,
     forceCloseConnections?: boolean,
     bodyLimit?: number,

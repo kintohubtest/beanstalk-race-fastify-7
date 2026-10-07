@@ -115,6 +115,9 @@ fastify.route(options)
   larger than this number of bytes. Must be an integer. You may also set this
   option globally when first creating the Fastify instance with
   `fastify(options)`. Defaults to `1048576` (1 MiB).
+* `handlerTimeout`: application request timeout in milliseconds. Must be an
+  integer greater than zero. Inherits the server
+  [`handlerTimeout`](./Server.md#handlertimeout) option.
 * `logLevel`: set log level for this route. See below.
 * `logSerializers`: set serializers to log for this route.
 * `config`: object used to store custom configuration.
