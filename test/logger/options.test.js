@@ -577,3 +577,63 @@ t.test('logger options', { timeout: 60000 }, async (t) => {
     }
   })
 })
+
+t.test('invalid route log levels fail during registration', async t => {
+  for (const logger of [false, true]) {
+    const fastify = Fastify({ logger })
+    t.after(() => fastify.close())
+
+    for (const logLevel of ['invalid', 'child', 'toString', '', null, false, 0, 30]) {
+      t.assert.throws(() => {
+        fastify.get('/invalid', { logLevel }, () => {})
+      }, {
+        code: 'FST_ERR_ROUTE_LOG_LEVEL_INVALID',
+        message: `Log level for 'GET:/invalid' route must be a valid logger level. Received: '${logLevel}'`
+      })
+    }
+  }
+})
+
+t.test('invalid plugin log levels fail when registering a route', async t => {
+  for (const logLevel of ['invalid', '', null, false, 0]) {
+    const fastify = Fastify({ logger: true })
+    t.after(() => fastify.close())
+    fastify.register(async instance => {
+      instance.get('/', () => {})
+    }, { logLevel, prefix: '/plugin' })
+
+    await t.assert.rejects(fastify.ready(), {
+      code: 'FST_ERR_ROUTE_LOG_LEVEL_INVALID',
+      message: `Log level for 'GET:/plugin' route must be a valid logger level. Received: '${logLevel}'`
+    })
+  }
+})
+
+t.test('standard route log levels work with logging disabled', async t => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+  const levels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']
+  for (const logLevel of levels) {
+    fastify.get(`/${logLevel}`, { logLevel }, () => 'ok')
+  }
+  for (const logLevel of levels) {
+    t.assert.strictEqual((await fastify.inject(`/${logLevel}`)).statusCode, 200)
+  }
+})
+
+t.test('routes support configured custom log levels', async t => {
+  const loggerInstance = pino({ customLevels: { custom: 35 } }, new stream.Writable({
+    write (chunk, encoding, callback) { callback() }
+  }))
+  const fastify = Fastify({ loggerInstance })
+  t.after(() => fastify.close())
+  fastify.get('/route', { logLevel: 'custom' }, request => request.log.level)
+  fastify.get('/silent', { logLevel: 'silent' }, request => request.log.level)
+  fastify.register(async instance => {
+    instance.get('/plugin', request => request.log.level)
+  }, { logLevel: 'custom' })
+
+  t.assert.strictEqual((await fastify.inject('/route')).body, 'custom')
+  t.assert.strictEqual((await fastify.inject('/plugin')).body, 'custom')
+  t.assert.strictEqual((await fastify.inject('/silent')).body, 'silent')
+})
