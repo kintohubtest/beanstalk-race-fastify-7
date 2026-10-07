@@ -3,6 +3,7 @@
 const { test, before } = require('node:test')
 const fastify = require('..')
 const helper = require('./helper')
+const Request = require('../lib/request')
 
 const fetchForwardedRequest = async (fastifyServer, forHeader, path, protoHeader) => {
   const headers = {
@@ -44,6 +45,24 @@ const testRequestValues = (t, req, options) => {
 let localhost
 before(async function () {
   [localhost] = await helper.getLoopbackHost()
+})
+
+test('trust proxy does not trust forwarded host/proto when socket is null', t => {
+  t.plan(2)
+  const req = {
+    socket: null,
+    headers: {
+      host: 'real.test',
+      'x-forwarded-for': '1.1.1.1',
+      'x-forwarded-host': 'spoofed.test',
+      'x-forwarded-proto': 'https'
+    }
+  }
+  const TpRequest = Request.buildRequest(Request, true)
+  const request = new TpRequest('id', 'params', req, 'query', 'log')
+
+  t.assert.strictEqual(request.host, 'real.test')
+  t.assert.strictEqual(request.protocol, undefined)
 })
 
 test('trust proxy, not add properties to node req', async t => {

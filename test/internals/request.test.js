@@ -527,20 +527,25 @@ test('Request with trust proxy and null or undefined remote address', t => {
   }
 })
 
-test('Request with trust proxy and undefined socket', t => {
-  t.plan(1)
-  const headers = {
-    'x-forwarded-for': '2.2.2.2, 1.1.1.1',
-    'x-forwarded-host': 'example.com'
-  }
-  const req = {
-    method: 'GET',
-    url: '/',
-    socket: undefined,
-    headers
-  }
+for (const socket of [undefined, null]) {
+  test(`Request with trust proxy and ${socket} socket`, t => {
+    t.plan(2)
+    const headers = {
+      host: 'localhost',
+      'x-forwarded-for': '2.2.2.2, 1.1.1.1',
+      'x-forwarded-host': 'example.com',
+      'x-forwarded-proto': 'https'
+    }
+    const req = {
+      method: 'GET',
+      url: '/',
+      socket,
+      headers
+    }
 
-  const TpRequest = Request.buildRequest(Request, true)
-  const request = new TpRequest('id', 'params', req, 'query', 'log')
-  t.assert.deepStrictEqual(request.protocol, undefined)
-})
+    const TpRequest = Request.buildRequest(Request, true)
+    const request = new TpRequest('id', 'params', req, 'query', 'log')
+    t.assert.strictEqual(request.host, 'localhost')
+    t.assert.strictEqual(request.protocol, undefined)
+  })
+}
