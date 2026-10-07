@@ -300,7 +300,7 @@ test('Error thrown 415 from content type is null and make post request to server
   t.plan(3)
 
   const fastify = Fastify()
-  const errMsg = new FST_ERR_CTP_INVALID_MEDIA_TYPE(undefined).message
+  const errMsg = new FST_ERR_CTP_INVALID_MEDIA_TYPE().message
 
   fastify.post('/', (req, reply) => {
   })
