@@ -32,7 +32,8 @@ const {
   kKeepAliveConnections,
   kChildLoggerFactory,
   kGenReqId,
-  kErrorHandlerAlreadySet
+  kErrorHandlerAlreadySet,
+  kDisableRequestLogging
 } = require('./lib/symbols.js')
 
 const { createServer } = require('./lib/server')
@@ -639,11 +640,12 @@ function fastify (serverOptions) {
     if (options.frameworkErrors) {
       const id = getGenReqId(onBadUrlContext.server, req)
       const childLogger = createChildLogger(onBadUrlContext, options.logger, req, id)
+      childLogger[kDisableRequestLogging] = typeof disableRequestLogging === 'function' ? disableRequestLogging(req) : disableRequestLogging
 
       const request = new Request(id, null, req, null, childLogger, onBadUrlContext)
       const reply = new Reply(res, request, childLogger)
 
-      if (disableRequestLogging === false) {
+      if (childLogger[kDisableRequestLogging] === false) {
         childLogger.info({ req: request }, 'incoming request')
       }
 
@@ -664,11 +666,12 @@ function fastify (serverOptions) {
         if (options.frameworkErrors) {
           const id = getGenReqId(onBadUrlContext.server, req)
           const childLogger = createChildLogger(onBadUrlContext, options.logger, req, id)
+          childLogger[kDisableRequestLogging] = typeof disableRequestLogging === 'function' ? disableRequestLogging(req) : disableRequestLogging
 
           const request = new Request(id, null, req, null, childLogger, onBadUrlContext)
           const reply = new Reply(res, request, childLogger)
 
-          if (disableRequestLogging === false) {
+          if (childLogger[kDisableRequestLogging] === false) {
             childLogger.info({ req: request }, 'incoming request')
           }
 
