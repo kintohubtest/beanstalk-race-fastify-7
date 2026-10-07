@@ -577,3 +577,59 @@ t.test('logger options', { timeout: 60000 }, async (t) => {
     }
   })
 })
+
+t.test('invalid route log levels throw during registration', async (t) => {
+  for (const logger of [false, true]) {
+    const fastify = Fastify({ logger })
+    t.after(() => fastify.close())
+
+    for (const logLevel of ['invalid', 'level', 123, {}, ['info']]) {
+      t.assert.throws(() => {
+        fastify.get('/invalid', { logLevel }, () => {})
+      }, {
+        code: 'FST_ERR_ROUTE_LOG_LEVEL_INVALID',
+        name: 'FastifyError'
+      })
+    }
+  }
+})
+
+t.test('invalid plugin log levels throw when registering routes', async (t) => {
+  const fastify = Fastify({ logger: true })
+  t.after(() => fastify.close())
+  fastify.register(async function (instance) {
+    instance.get('/invalid', () => {})
+  }, { prefix: '/plugin', logLevel: 'invalid' })
+
+  await t.assert.rejects(fastify.ready(), {
+    code: 'FST_ERR_ROUTE_LOG_LEVEL_INVALID',
+    message: "Log level for 'GET:/plugin/invalid' route must be a valid logger level. Received: 'invalid'"
+  })
+})
+
+t.test('configured custom log levels work for routes and plugins', async (t) => {
+  const fastify = Fastify({
+    logger: { customLevels: { custom: 35 }, stream: split(JSON.parse) }
+  })
+  t.after(() => fastify.close())
+  fastify.get('/route', { logLevel: 'custom' }, (req) => req.log.level)
+  fastify.register(async function (instance) {
+    instance.get('/plugin', (req) => req.log.level)
+  }, { logLevel: 'custom' })
+
+  for (const url of ['/route', '/plugin']) {
+    const response = await fastify.inject(url)
+    t.assert.strictEqual(response.statusCode, 200)
+    t.assert.strictEqual(response.body, 'custom')
+  }
+})
+
+t.test('silent route log level works with logging enabled or disabled', async (t) => {
+  for (const logger of [false, true]) {
+    const fastify = Fastify({ logger })
+    t.after(() => fastify.close())
+    fastify.get('/', { logLevel: 'silent' }, () => 'ok')
+    const response = await fastify.inject('/')
+    t.assert.strictEqual(response.statusCode, 200)
+  }
+})
