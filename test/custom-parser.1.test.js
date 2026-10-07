@@ -97,7 +97,7 @@ test('Should get the body as string /2', async (t) => {
     reply.send(req.body)
   })
 
-  fastify.addContentTypeParser('text/plain/test', { parseAs: 'string' }, function (req, body, done) {
+  fastify.addContentTypeParser('text/plain-test', { parseAs: 'string' }, function (req, body, done) {
     t.assert.ok('called')
     t.assert.ok(typeof body === 'string')
     try {
@@ -116,7 +116,7 @@ test('Should get the body as string /2', async (t) => {
     method: 'POST',
     body: 'hello world',
     headers: {
-      'Content-Type': '   text/plain/test  '
+      'Content-Type': '   text/plain-test  '
     }
   })
 
