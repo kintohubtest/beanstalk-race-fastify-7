@@ -1062,6 +1062,28 @@ test('Custom AJV settings - pt2', (t, testDone) => {
   })
 })
 
+test('Custom validator replaces the request body with falsy values', async t => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  fastify.setValidatorCompiler(() => data => ({ value: data.value }))
+  fastify.post('/', {
+    schema: { body: { type: 'object' } }
+  }, (request, reply) => {
+    reply.send({ body: request.body })
+  })
+
+  for (const value of [0, '', false, null]) {
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/',
+      payload: { value }
+    })
+    t.assert.strictEqual(response.statusCode, 200)
+    t.assert.strictEqual(response.json().body, value)
+  }
+})
+
 test('Custom AJV settings on different parameters - pt1', (t, testDone) => {
   t.plan(2)
   const fastify = Fastify()
