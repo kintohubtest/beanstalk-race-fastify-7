@@ -72,6 +72,21 @@ for (const remoteAddress of [undefined, null, '127.0.0.1', '192.0.2.1']) {
   }
 }
 
+test('trust proxy does not trust forwarded host/proto when socket is null', t => {
+  const TpRequest = Request.buildRequest(Request, true)
+  const request = new TpRequest('id', {}, {
+    socket: null,
+    headers: {
+      host: 'direct.test',
+      'x-forwarded-host': 'forwarded.test',
+      'x-forwarded-proto': 'https'
+    }
+  }, {}, {})
+
+  t.assert.strictEqual(request.host, 'direct.test')
+  t.assert.strictEqual(request.protocol, undefined)
+})
+
 test('trust proxy, not add properties to node req', async t => {
   t.plan(13)
   const app = fastify({
