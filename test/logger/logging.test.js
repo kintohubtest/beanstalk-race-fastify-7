@@ -421,3 +421,48 @@ t.test('logging', { timeout: 60000 }, async (t) => {
     t.assert.strictEqual(stream.readableLength, 0)
   })
 })
+
+t.test('conditionally disables automatic logging for plugin routes and errors', async (t) => {
+  const logs = []
+  const requests = []
+  const logStream = new stream.Writable({
+    write (chunk, encoding, callback) {
+      logs.push(JSON.parse(chunk))
+      callback()
+    }
+  })
+  const fastify = Fastify({
+    logger: { stream: logStream },
+    disableRequestLogging (req) {
+      requests.push(req)
+      return req.url.startsWith('/silent')
+    }
+  })
+  t.after(() => fastify.close())
+
+  fastify.register(async function (instance) {
+    instance.get('/silent/health', (req, reply) => {
+      req.log.info('custom log')
+      reply.send({ ok: true })
+    })
+    instance.get('/silent/error', () => {
+      throw new Error('silent error')
+    })
+    instance.get('/visible', () => ({ ok: true }))
+    instance.get('/error', () => {
+      throw new Error('visible error')
+    })
+  })
+
+  for (const url of ['/silent/health', '/silent/error', '/visible', '/error']) {
+    await fastify.inject({ url })
+  }
+
+  t.assert.strictEqual(requests.length, 4)
+  t.assert.ok(requests.every(req => req.raw === undefined && req.headers))
+  t.assert.strictEqual(logs.filter(log => log.msg === 'incoming request').length, 2)
+  t.assert.strictEqual(logs.filter(log => log.msg === 'request completed').length, 2)
+  t.assert.strictEqual(logs.filter(log => log.msg === 'visible error').length, 1)
+  t.assert.strictEqual(logs.filter(log => log.msg === 'silent error').length, 0)
+  t.assert.strictEqual(logs.filter(log => log.msg === 'custom log').length, 1)
+})
