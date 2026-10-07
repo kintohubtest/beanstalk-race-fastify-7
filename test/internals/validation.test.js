@@ -10,6 +10,26 @@ const { normalizeSchema } = require('../../lib/schemas')
 const symbols = require('../../lib/validation').symbols
 const { kSchemaVisited } = require('../../lib/symbols')
 
+test('custom validators replace request values with explicit falsy values', async t => {
+  for (const value of [0, '', false, null, undefined]) {
+    for (const async of [false, true]) {
+      for (const [paramName, schemaSymbol] of [
+        ['body', symbols.bodySchema],
+        ['params', symbols.paramsSchema],
+        ['query', symbols.querystringSchema],
+        ['headers', symbols.headersSchema]
+      ]) {
+        const request = { [paramName]: 'original' }
+        const context = {
+          [schemaSymbol]: () => async ? Promise.resolve({ value }) : { value }
+        }
+        t.assert.strictEqual(await validation.validate(context, request), false)
+        t.assert.strictEqual(request[paramName], value)
+      }
+    }
+  }
+})
+
 test('Symbols', t => {
   t.plan(5)
   t.assert.strictEqual(typeof symbols.responseSchema, 'symbol')
