@@ -431,6 +431,31 @@ test('Request with trust proxy - handles multiple entries in x-forwarded-host/pr
   t.assert.strictEqual(request.protocol, 'https')
 })
 
+for (const remoteAddress of [undefined, null, '127.0.0.1', '192.0.2.1']) {
+  for (const trustProxy of [1, '127.0.0.1']) {
+    test(`Request with trust proxy ${trustProxy} and socket address ${remoteAddress}`, t => {
+      const req = {
+        socket: { remoteAddress },
+        headers: {
+          host: 'localhost',
+          'x-forwarded-for': '2.2.2.2, 1.1.1.1',
+          'x-forwarded-host': 'example.com',
+          'x-forwarded-proto': 'https'
+        }
+      }
+      const TpRequest = Request.buildRequest(Request, trustProxy)
+      const request = new TpRequest('id', 'params', req, 'query', 'log')
+      const trusted = trustProxy === 1 || remoteAddress == null || remoteAddress === '127.0.0.1'
+
+      t.assert.strictEqual(request.host, trusted ? 'example.com' : 'localhost')
+      t.assert.strictEqual(request.protocol, trusted ? 'https' : 'http')
+      if (trustProxy === 1) {
+        t.assert.strictEqual(request.ip, '1.1.1.1')
+      }
+    })
+  }
+}
+
 test('Request with trust proxy - plain', t => {
   t.plan(1)
   const headers = {
