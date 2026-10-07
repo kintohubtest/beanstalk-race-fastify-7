@@ -329,7 +329,7 @@ test('removeTrailer', (t, testDone) => {
 })
 
 test('remove all trailers', (t, testDone) => {
-  t.plan(6)
+  t.plan(7)
 
   const fastify = Fastify()
 
@@ -353,12 +353,56 @@ test('remove all trailers', (t, testDone) => {
   }, (error, res) => {
     t.assert.ifError(error)
     t.assert.strictEqual(res.statusCode, 200)
-    t.assert.ok(!res.headers.trailer)
+    t.assert.strictEqual(res.headers.trailer, undefined)
     t.assert.ok(!res.trailers.etag)
     t.assert.ok(!res.trailers['should-not-call'])
-    t.assert.ok(!res.headers['content-length'])
+    t.assert.strictEqual(res.headers['content-length'], '0')
+    t.assert.strictEqual(res.headers['transfer-encoding'], undefined)
     testDone()
   })
+})
+
+test('remove all trailers before sending a non-empty payload', async (t) => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  fastify.get('/', function (request, reply) {
+    reply.trailer('ETag', function () {
+      t.assert.fail('removed trailer should not be called')
+    })
+    reply.removeTrailer('ETag')
+    reply.send('hello')
+  })
+
+  const res = await fastify.inject('/')
+  t.assert.strictEqual(res.payload, 'hello')
+  t.assert.strictEqual(res.headers.trailer, undefined)
+  t.assert.strictEqual(res.headers['transfer-encoding'], undefined)
+  t.assert.strictEqual(res.headers['content-length'], '5')
+  t.assert.deepStrictEqual(res.trailers, {})
+})
+
+test('remove all trailers during a trailer callback', async (t) => {
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  fastify.get('/', function (request, reply) {
+    reply.trailer('ETag', function (reply, payload, done) {
+      reply.removeTrailer('ETag')
+      reply.removeTrailer('Content-MD5')
+      done(null, 'custom-etag')
+    })
+    reply.trailer('Content-MD5', function () {
+      t.assert.fail('removed trailer should not be called')
+    })
+    reply.send('hello')
+  })
+
+  const res = await fastify.inject('/')
+  t.assert.strictEqual(res.statusCode, 200)
+  t.assert.strictEqual(res.payload, 'hello')
+  t.assert.strictEqual(res.headers['transfer-encoding'], 'chunked')
+  t.assert.deepStrictEqual(res.trailers, { etag: 'custom-etag' })
 })
 
 test('hasTrailer', (t, testDone) => {
